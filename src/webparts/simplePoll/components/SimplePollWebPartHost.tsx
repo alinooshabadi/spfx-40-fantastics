@@ -12,11 +12,12 @@ import { Dialog, DialogType } from 'office-ui-fabric-react/lib/Dialog';
 import { Label } from 'office-ui-fabric-react/lib/Label';
 import { Button, ButtonType } from 'office-ui-fabric-react/lib/Button';
 import { ISimplePollWebPartProps } from '../ISimplePollWebPartProps';
-import { IWebPartContext } from '@microsoft/sp-client-preview';
+import { IWebPartContext } from '@microsoft/sp-webpart-base';
 import * as strings from 'SimplePollStrings';
 import { SPSurveyService } from '../SPSurveyService';
 import styles from '../SimplePoll.module.scss';
-import ModuleLoader from '@microsoft/sp-module-loader';
+
+var Chart: any = require('chartjs');
 
 /**
  * @interface
@@ -45,7 +46,6 @@ export default class SimplePollWebPartHost extends React.Component<ISimplePollWe
 
   //page context
   private myPageContext: IWebPartContext;
-  private Chart: any;
   private guid: string;
 
   /**
@@ -170,7 +170,7 @@ export default class SimplePollWebPartHost extends React.Component<ISimplePollWe
                 <div style={{lineHeight: '28px'}}>
                 {this.state.choices.map((answer: string, i: number) => {
                   return (
-                    <div><input type='radio' defaultChecked={answer == this.state.selectedValue ? true : false} onChange={this.onVoteChanged} disabled={this.state.alreadyVote} name={this.guid} value={answer} /> {answer}</div>
+                    <div><input type='radio' defaultChecked={answer == this.state.selectedValue ? true : false} aria-checked={answer == this.state.selectedValue ? true : false} onChange={this.onVoteChanged} disabled={this.state.alreadyVote} name={this.guid} value={answer} /> {answer}</div>
                   );
                 })}
                 </div>
@@ -253,12 +253,9 @@ export default class SimplePollWebPartHost extends React.Component<ISimplePollWe
       const listService: SPSurveyService = new SPSurveyService(this.props, this.myPageContext);
       listService.getResults(this.props.surveyList, this.state.questionInternalName, this.state.choices).then((num: number[]) => {
         this.state.results = num;
-        ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.3.0/Chart.min.js', 'Chart').then((Chart?: any): void => {
           this.state.loaded = true;
           this.setState(this.state);
-          this.Chart = Chart;
           this.loadChart();
-        });
       });
     }
     else {
@@ -334,7 +331,7 @@ export default class SimplePollWebPartHost extends React.Component<ISimplePollWe
             }
           };
         var ctx = document.getElementById(this.guid + '-chart');
-        new this.Chart(ctx, {
+        new Chart(ctx, {
               type: 'pie',
               data: data,
               options: options
@@ -374,7 +371,7 @@ export default class SimplePollWebPartHost extends React.Component<ISimplePollWe
           }
         };
         var ctx2 = document.getElementById(this.guid + '-chart');
-        new this.Chart(ctx2, {
+        new Chart(ctx2, {
             type:  'horizontalBar',
             data: data2,
             options: options2

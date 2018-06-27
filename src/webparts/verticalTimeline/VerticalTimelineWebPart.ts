@@ -7,9 +7,10 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'VerticalTimelineStrings';
 import { IVerticalTimelineWebPartProps } from './IVerticalTimelineWebPartProps';
@@ -19,9 +20,8 @@ import { ISPListItem } from './ISPList';
 //Imports property pane custom fields
 import { PropertyFieldSPListQuery, PropertyFieldSPListQueryOrderBy } from 'sp-client-custom-fields/lib/PropertyFieldSPListQuery';
 import { PropertyFieldIconPicker } from 'sp-client-custom-fields/lib/PropertyFieldIconPicker';
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 
-require('jquery');
 import * as $ from 'jquery';
 
 export default class VerticalTimelineWebPart extends BaseClientSideWebPart<IVerticalTimelineWebPartProps> {
@@ -32,15 +32,23 @@ export default class VerticalTimelineWebPart extends BaseClientSideWebPart<IVert
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
     this.timelineAnimate = this.timelineAnimate.bind(this);
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -390,7 +398,7 @@ export default class VerticalTimelineWebPart extends BaseClientSideWebPart<IVert
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -412,8 +420,12 @@ export default class VerticalTimelineWebPart extends BaseClientSideWebPart<IVert
                   showMax: true,
                   showFilters: true,
                   max: 100,
-                  onPropertyChange: this.onPropertyChange,
-                  context: this.context
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  context: this.context,
+                  properties: this.properties,
+                  key: 'verticalTimelineQueryField'
                 })
               ]
             },
@@ -424,17 +436,29 @@ export default class VerticalTimelineWebPart extends BaseClientSideWebPart<IVert
                   label: strings.icon,
                   initialValue: this.properties.icon,
                   orderAlphabetical: true,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'verticalTimelineIconField'
                 }),
-                PropertyFieldColorPicker('color', {
+                PropertyFieldColorPickerMini('color', {
                   label: strings.color,
                   initialColor: this.properties.color,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'verticalTimelineColorField'
                 }),
-                PropertyFieldColorPicker('backgroundColor', {
+                PropertyFieldColorPickerMini('backgroundColor', {
                   label: strings.backgroundColor,
                   initialColor: this.properties.backgroundColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'verticalTimelineBgColorField'
                 })
               ]
             }

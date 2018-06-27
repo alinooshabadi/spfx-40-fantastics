@@ -7,23 +7,23 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneSlider,
   PropertyPaneToggle,
   PropertyPaneTextField,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'TypeWritingStrings';
 import { ITypeWritingWebPartProps } from './ITypeWritingWebPartProps';
 
 //Imports property pane custom fields
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFieldFontPicker';
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
 
-
-var TypeWriting = require('typewriting');
+var TypeWriting: any = require('typewriting');
 
 export default class TypeWritingWebPart extends BaseClientSideWebPart<ITypeWritingWebPartProps> {
 
@@ -34,15 +34,24 @@ export default class TypeWritingWebPart extends BaseClientSideWebPart<ITypeWriti
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
 
     this.guid = this.getGuid();
   }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
+  }
+
 
   /**
    * @function
@@ -112,7 +121,7 @@ export default class TypeWritingWebPart extends BaseClientSideWebPart<ITypeWriti
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -148,10 +157,14 @@ export default class TypeWritingWebPart extends BaseClientSideWebPart<ITypeWriti
                   max: 5000,
                   step: 50
                 }),
-                PropertyFieldColorPicker('cursorColor', {
+                PropertyFieldColorPickerMini('cursorColor', {
                   label: strings.CursorColor,
                   initialColor: this.properties.cursorColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'typeWritingCursorColorField'
                 })
               ]
             },
@@ -163,24 +176,40 @@ export default class TypeWritingWebPart extends BaseClientSideWebPart<ITypeWriti
                   useSafeFont: true,
                   previewFonts: true,
                   initialValue: this.properties.font,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'typeWritingFontField'
                 }),
                 PropertyFieldFontSizePicker('fontSize', {
                   label: strings.FontSize,
                   usePixels: true,
                   preview: true,
                   initialValue: this.properties.fontSize,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'typeWritingFontSizeField'
                 }),
-                PropertyFieldColorPicker('fontColor', {
+                PropertyFieldColorPickerMini('fontColor', {
                   label: strings.FontColor,
                   initialColor: this.properties.fontColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'typeWritingFontColorField'
                 }),
-                PropertyFieldColorPicker('backgroundColor', {
+                PropertyFieldColorPickerMini('backgroundColor', {
                   label: strings.BackgroundColor,
                   initialColor: this.properties.backgroundColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'typeWritingBgColorField'
                 })
               ]
             }

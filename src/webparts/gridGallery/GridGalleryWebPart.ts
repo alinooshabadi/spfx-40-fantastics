@@ -7,47 +7,57 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   IWebPartContext,
   PropertyPaneToggle,
   PropertyPaneDropdown,
   PropertyPaneSlider
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'gridGalleryStrings';
 import { IGridGalleryWebPartProps } from './IGridGalleryWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 import { SPPicturesListService } from './SPPicturesListService';
 import { ISPListItem } from './ISPList';
 
 //Imports property pane custom fields
 import { PropertyFieldSPListQuery, PropertyFieldSPListQueryOrderBy } from 'sp-client-custom-fields/lib/PropertyFieldSPListQuery';
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFieldFontPicker';
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
 import { PropertyFieldAlignPicker } from 'sp-client-custom-fields/lib/PropertyFieldAlignPicker';
+import { PropertyFieldDimensionPicker } from 'sp-client-custom-fields/lib/PropertyFieldDimensionPicker';
 
-require('jquery');
+//Loads external JS libs
 import * as $ from 'jquery';
+require('unitegallery');
+require('ug-theme-grid');
+
+//Loads external CSS files
+require('../../css/unitegallery/unite-gallery.scss');
 
 export default class GridGalleryWebPart extends BaseClientSideWebPart<IGridGalleryWebPartProps> {
 
   private guid: string;
-  private scriptLoaded: boolean = false;
 
   /**
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
 
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
 
-    ModuleLoader.loadCss('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/css/unite-gallery.css');
-    ModuleLoader.loadCss('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/themes/default/ug-theme-default.css');
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -73,14 +83,7 @@ export default class GridGalleryWebPart extends BaseClientSideWebPart<IGridGalle
       return;
     }
 
-    if (this.renderedOnce === false || this.scriptLoaded === false) {
-      ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/js/unitegallery.min.js', 'jQuery').then((): void => {
-        ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/themes/grid/ug-theme-grid.js', 'jQuery').then((): void => {
-          this.renderContents();
-        });
-      });
-      this.scriptLoaded = true;
-    }
+    this.renderContents();
 
     const picturesListService: SPPicturesListService = new SPPicturesListService(this.properties, this.context);
       //Load the list of pictures from the current lib
@@ -119,6 +122,9 @@ export default class GridGalleryWebPart extends BaseClientSideWebPart<IGridGalle
 
   private renderContents(): void {
 
+    var width: number = Number(this.properties.tileDimension.width.replace("px", "").replace("%", ""));
+    var height: number = Number(this.properties.tileDimension.height.replace("px", "").replace("%", ""));
+
       ($ as any)("#" + this.guid + "-gallery").unitegallery({
         gallery_theme: "grid",
         slider_enable_arrows: this.properties.enableArrows,
@@ -143,8 +149,8 @@ export default class GridGalleryWebPart extends BaseClientSideWebPart<IGridGalle
         gallery_play_interval: this.properties.speed,
         gallery_pause_on_mouseover: this.properties.pauseOnMouseover,
         tile_enable_icons: this.properties.enableIcons,
-        thumb_width: this.properties.tileWidth,
-        thumb_height: this.properties.tileHeight,
+        thumb_width: width,
+        thumb_height: height,
         grid_num_cols: this.properties.numCols,
         slider_textpanel_title_font_size: this.properties.textPanelFontSize != null ? this.properties.textPanelFontSize.replace("px", "") : ''
       });
@@ -173,7 +179,7 @@ export default class GridGalleryWebPart extends BaseClientSideWebPart<IGridGalle
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -195,8 +201,12 @@ export default class GridGalleryWebPart extends BaseClientSideWebPart<IGridGalle
                   showMax: true,
                   showFilters: true,
                   max: 100,
-                  onPropertyChange: this.onPropertyChange,
-                  context: this.context
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  context: this.context,
+                  properties: this.properties,
+                  key: "gridGallerySPListField"
                 })
               ]
             },
@@ -239,17 +249,19 @@ export default class GridGalleryWebPart extends BaseClientSideWebPart<IGridGalle
                 PropertyPaneToggle('controlsAlwaysOn', {
                   label: strings.ControlsAlwaysOn
                 }),
-                PropertyPaneSlider('tileWidth', {
-                  label: strings.TileWidth,
-                  min: 1,
-                  max: 500,
-                  step: 1
-                }),
-                PropertyPaneSlider('tileHeight', {
-                  label: strings.TileHeight,
-                  min: 1,
-                  max: 500,
-                  step: 1
+                PropertyFieldDimensionPicker('tileDimension', {
+                  label: strings.TileDimension,
+                  initialValue: this.properties.tileDimension,
+                  preserveRatio: true,
+                  preserveRatioEnabled: true,
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  disabled: false,
+                  onGetErrorMessage: null,
+                  deferredValidationTime: 0,
+                  key: 'gridGalleryDimensionFieldId'
                 })
               ]
             },
@@ -295,29 +307,49 @@ export default class GridGalleryWebPart extends BaseClientSideWebPart<IGridGalle
                 PropertyFieldAlignPicker('textPanelAlign', {
                   label: strings.TextPanelAlignFieldLabel,
                   initialValue: this.properties.textPanelAlign,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChanged: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "gridGalleryAlignField"
                 }),
                 PropertyFieldFontPicker('textPanelFont', {
                   label: strings.TextPanelFontFieldLabel,
                   initialValue: this.properties.textPanelFont,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "gridGalleryFontField"
                 }),
                 PropertyFieldFontSizePicker('textPanelFontSize', {
                   label: strings.TextPanelFontSizeFieldLabel,
                   initialValue: this.properties.textPanelFontSize,
                   usePixels: true,
                   preview: true,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "gridGalleryFontSizeField"
                 }),
-                PropertyFieldColorPicker('textPanelFontColor', {
+                PropertyFieldColorPickerMini('textPanelFontColor', {
                   label: strings.TextPanelFontColorFieldLabel,
                   initialColor: this.properties.textPanelFontColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "gridGalleryFontColorField"
                 }),
-                PropertyFieldColorPicker('textPanelBackgroundColor', {
+                PropertyFieldColorPickerMini('textPanelBackgroundColor', {
                   label: strings.TextPanelBackgroundColorFieldLabel,
                   initialColor: this.properties.textPanelBackgroundColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "gridGalleryBgColorField"
                 })
               ]
             }
@@ -340,10 +372,14 @@ export default class GridGalleryWebPart extends BaseClientSideWebPart<IGridGalle
                   max: 50,
                   step: 1
                 }),
-                PropertyFieldColorPicker('borderColor', {
+                PropertyFieldColorPickerMini('borderColor', {
                   label: strings.BorderColorFieldLabel,
                   initialColor: this.properties.borderColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "gridGalleryBorderColorField"
                 })
               ]
             }

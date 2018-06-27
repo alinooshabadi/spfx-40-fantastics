@@ -7,34 +7,42 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneTextField,
   PropertyPaneToggle,
   PropertyPaneSlider,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'TweetsFeedStrings';
 import { ITweetsFeedWebPartProps } from './ITweetsFeedWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 
 //Imports property pane custom fields
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
+
+var twttr: any = require('twitter');
 
 export default class TweetsFeedWebPart extends BaseClientSideWebPart<ITweetsFeedWebPartProps> {
-
-  private twttr: any;
 
   /**
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -79,21 +87,14 @@ export default class TweetsFeedWebPart extends BaseClientSideWebPart<ITweetsFeed
     var html = '<a class="twitter-timeline" data-link-color="' + this.properties.linkColor + '" data-border-color="' + this.properties.borderColor + '" height="' + this.properties.height + '" width="' + this.properties.width + '" ' + limit + ' data-chrome="' + dataChrome + '" href="https://twitter.com/' + this.properties.account + '">Tweets by ' + this.properties.account + '</a>';
     this.domElement.innerHTML = html;
 
-    if (this.twttr == null) {
-      ModuleLoader.loadScript('//platform.twitter.com/widgets.js', 'twttr').then((twttr?: any)=> {
-        this.twttr = twttr;
-      });
-    }
-    else {
-      this.twttr.widgets.load();
-    }
+    twttr.widgets.load();
   }
 
   /**
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -143,15 +144,23 @@ export default class TweetsFeedWebPart extends BaseClientSideWebPart<ITweetsFeed
                 PropertyPaneToggle('transparent', {
                   label: strings.Transparent
                 }),
-                PropertyFieldColorPicker('linkColor', {
+                PropertyFieldColorPickerMini('linkColor', {
                   label: strings.LinkColor,
                   initialColor: this.properties.linkColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'tweetsFeedLinkColorField'
                 }),
-                PropertyFieldColorPicker('borderColor', {
+                PropertyFieldColorPickerMini('borderColor', {
                   label: strings.BorderColor,
                   initialColor: this.properties.borderColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'tweetsFeedBorderColorField'
                 })
               ]
             }

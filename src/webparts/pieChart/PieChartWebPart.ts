@@ -7,23 +7,26 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneTextField,
   PropertyPaneSlider,
   PropertyPaneToggle,
   PropertyPaneDropdown,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'PieChartStrings';
 import { IPieChartWebPartProps } from './IPieChartWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 
 //Imports property pane custom fields
 import { PropertyFieldCustomList, CustomListFieldType } from 'sp-client-custom-fields/lib/PropertyFieldCustomList';
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFieldFontPicker';
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
+import { PropertyFieldDimensionPicker } from 'sp-client-custom-fields/lib/PropertyFieldDimensionPicker';
+
+var Chart: any = require('chartjs');
 
 export default class PieChartWebPart extends BaseClientSideWebPart<IPieChartWebPartProps> {
 
@@ -33,14 +36,22 @@ export default class PieChartWebPart extends BaseClientSideWebPart<IPieChartWebP
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   private getDataTab(property: string): string[] {
@@ -57,18 +68,16 @@ export default class PieChartWebPart extends BaseClientSideWebPart<IPieChartWebP
    */
   public render(): void {
 
-    var html = '<canvas id="' + this.guid + '" width="' + this.properties.width + '" height="' + this.properties.width + '"></canvas>';
+    var html = '<canvas id="' + this.guid + '" width="' + this.properties.dimension.width + '" height="' + this.properties.dimension.height + '"></canvas>';
     this.domElement.innerHTML = html;
 
-    ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.3.0/Chart.min.js', 'Chart').then((Chart?: any): void => {
-
         var data = {
-        labels: this.getDataTab(strings.Label),
+        labels: this.getDataTab("Label"),
         datasets: [
             {
-                data: this.getDataTab(strings.Value),
-                backgroundColor: this.getDataTab(strings.Color),
-                hoverBackgroundColor: this.getDataTab(strings.HoverColor)
+                data: this.getDataTab("Value"),
+                backgroundColor: this.getDataTab("Color"),
+                hoverBackgroundColor: this.getDataTab("Hover Color")
             }
         ]
       };
@@ -104,9 +113,6 @@ export default class PieChartWebPart extends BaseClientSideWebPart<IPieChartWebP
           options: options
       });
 
-    });
-
-
   }
 
   /**
@@ -132,7 +138,7 @@ export default class PieChartWebPart extends BaseClientSideWebPart<IPieChartWebP
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -149,28 +155,34 @@ export default class PieChartWebPart extends BaseClientSideWebPart<IPieChartWebP
                   value: this.properties.items,
                   headerText: strings.ManageItems,
                   fields: [
-                    { title: strings.Label, required: true, type: CustomListFieldType.string },
-                    { title: strings.Value, required: true, type: CustomListFieldType.number },
-                    { title: strings.Color, required: true, type: CustomListFieldType.color },
-                    { title: strings.HoverColor, required: true, type: CustomListFieldType.color }
+                    { id: 'Label', title: "Label", required: true, type: CustomListFieldType.string },
+                    { id: 'Value', title: "Value", required: true, type: CustomListFieldType.number },
+                    { id: 'Color', title: "Color", required: true, type: CustomListFieldType.color },
+                    { id: 'Hover Color', title: "Hover Color", required: true, type: CustomListFieldType.color }
                   ],
-                  onPropertyChange: this.onPropertyChange,
-                  context: this.context
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  context: this.context,
+                  properties: this.properties,
+                  key: 'pieChartListField'
                 }),
                 PropertyPaneToggle('responsive', {
                   label: strings.Responsive,
                 }),
-                PropertyPaneSlider('width', {
-                  label: strings.Width,
-                  min: 1,
-                  max: 800,
-                  step: 1
-                }),
-                PropertyPaneSlider('height', {
-                  label: strings.Height,
-                  min: 1,
-                  max: 800,
-                  step: 1
+                PropertyFieldDimensionPicker('dimension', {
+                  label: strings.Dimension,
+                  initialValue: this.properties.dimension,
+                  preserveRatio: true,
+                  preserveRatioEnabled: true,
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  disabled: false,
+                  onGetErrorMessage: null,
+                  deferredValidationTime: 0,
+                  key: 'pieChartDimensionFieldId'
                 })
               ]
             },
@@ -214,19 +226,31 @@ export default class PieChartWebPart extends BaseClientSideWebPart<IPieChartWebP
                   useSafeFont: true,
                   previewFonts: true,
                   initialValue: this.properties.titleFont,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'pieChartTitleFontField'
                 }),
                 PropertyFieldFontSizePicker('titleSize', {
                   label: strings.TitleSize,
                   usePixels: true,
                   preview: true,
                   initialValue: this.properties.titleSize,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'pieChartTitleSizeField'
                 }),
-                PropertyFieldColorPicker('titleColor', {
+                PropertyFieldColorPickerMini('titleColor', {
                   label: strings.TitleColor,
                   initialColor: this.properties.titleColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'pieChartTitleColorField'
                 })
               ]
             },
@@ -250,19 +274,31 @@ export default class PieChartWebPart extends BaseClientSideWebPart<IPieChartWebP
                   useSafeFont: true,
                   previewFonts: true,
                   initialValue: this.properties.legendFont,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'pieChartLegendFontField'
                 }),
                 PropertyFieldFontSizePicker('legendSize', {
                   label: strings.LegendSize,
                   usePixels: true,
                   preview: true,
                   initialValue: this.properties.legendSize,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'pieChartLegendSizeField'
                 }),
-                PropertyFieldColorPicker('legendColor', {
+                PropertyFieldColorPickerMini('legendColor', {
                   label: strings.LegendColor,
                   initialColor: this.properties.legendColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'pieChartLegendColorField'
                 })
               ]
             }

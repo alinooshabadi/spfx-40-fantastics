@@ -3,10 +3,10 @@ declare interface ISocialPhotoStreamStrings {
   BasicGroupName: string;
   network: string;
   userName: string;
+  accessKey: string;
   limit: string;
   overlay: string;
-  width: string;
-  height: string;
+  dimension: string;
   spacing: string;
 }
 

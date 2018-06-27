@@ -7,22 +7,22 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneSlider,
   PropertyPaneTextField,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'ImagePuzzleStrings';
 import { IImagePuzzleWebPartProps } from './IImagePuzzleWebPartProps';
 
 //Imports property pane custom fields
 import { PropertyFieldPicturePicker } from 'sp-client-custom-fields/lib/PropertyFieldPicturePicker';
-
-require('jquery');
-require('jigsaw');
+import { PropertyFieldDimensionPicker } from 'sp-client-custom-fields/lib/PropertyFieldDimensionPicker';
 
 import * as $ from 'jquery';
+require('jigsaw');
 
 export default class ImagePuzzleWebPart extends BaseClientSideWebPart<IImagePuzzleWebPartProps> {
 
@@ -32,14 +32,22 @@ export default class ImagePuzzleWebPart extends BaseClientSideWebPart<IImagePuzz
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
 
     this.guid = this.getGuid();
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -68,7 +76,7 @@ export default class ImagePuzzleWebPart extends BaseClientSideWebPart<IImagePuzz
     var html = '';
     if (this.properties.linkUrl != null && this.properties.linkUrl != '')
       html += '<a href="' + this.properties.linkUrl + '">';
-    html += '<div id="' + this.guid + '"><img src="' + this.properties.image + '" width="' + this.properties.width + '" height="' + this.properties.height + '" alt="' + this.properties.alt + '" title="' + this.properties.alt + '"></div>';
+    html += '<div id="' + this.guid + '"><img src="' + this.properties.image + '" style="width:' + this.properties.dimension.width + ';height:' + this.properties.dimension.height + '" alt="' + this.properties.alt + '" title="' + this.properties.alt + '"></div>';
     if (this.properties.linkUrl != null && this.properties.linkUrl != '')
       html += '</a>';
     this.domElement.innerHTML = html;
@@ -104,7 +112,7 @@ export default class ImagePuzzleWebPart extends BaseClientSideWebPart<IImagePuzz
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -119,14 +127,26 @@ export default class ImagePuzzleWebPart extends BaseClientSideWebPart<IImagePuzz
                 PropertyFieldPicturePicker('image', {
                   label: strings.Image,
                   initialValue: this.properties.image,
-                  onPropertyChange: this.onPropertyChange,
-                  context: this.context
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  context: this.context,
+                  properties: this.properties,
+                  key: "imagePuzzlePictureField"
                 }),
-                PropertyPaneTextField('width', {
-                  label: strings.Width
-                }),
-                PropertyPaneTextField('height', {
-                  label: strings.Height
+                PropertyFieldDimensionPicker('dimension', {
+                  label: strings.Dimension,
+                  initialValue: this.properties.dimension,
+                  preserveRatio: true,
+                  preserveRatioEnabled: true,
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  disabled: false,
+                  onGetErrorMessage: null,
+                  deferredValidationTime: 0,
+                  key: 'imagePuzzleDimensionFieldId'
                 }),
                 PropertyPaneTextField('alt', {
                   label: strings.Alt

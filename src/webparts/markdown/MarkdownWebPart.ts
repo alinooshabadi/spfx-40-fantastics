@@ -7,16 +7,26 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   IWebPartContext,
   PropertyPaneToggle
-} from '@microsoft/sp-client-preview';
-import { DisplayMode } from '@microsoft/sp-client-base';
+} from '@microsoft/sp-webpart-base';
+import { DisplayMode, Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'MarkdownStrings';
 import { IMarkdownWebPartProps } from './IMarkdownWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 
+//Loads external CSS
+require('../../css/simplemde/simplemde.min.scss');
+
+//Loads exrnal JS Libs
+var SimpleMDE: any = require('simplemde');
+var showdown: any = require('showdown');
+
+/**
+ * @class
+ * Markdown Web Part.
+ */
 export default class MarkdownWebPart extends BaseClientSideWebPart<IMarkdownWebPartProps> {
 
   private guid: string;
@@ -25,11 +35,18 @@ export default class MarkdownWebPart extends BaseClientSideWebPart<IMarkdownWebP
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
-    ModuleLoader.loadCss('//cdn.jsdelivr.net/simplemde/latest/simplemde.min.css');
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -39,15 +56,17 @@ export default class MarkdownWebPart extends BaseClientSideWebPart<IMarkdownWebP
   public render(): void {
 
     if (this.displayMode == DisplayMode.Edit) {
-      //Edit mode
+      //Edit mode: build a rich text area specialized in MD edition
+
+      //Creates a textarea container
       var html = '';
       html += "<textarea id='" + this.guid + "-editor'>" + this.properties.text + "</textarea>";
       this.domElement.innerHTML = html;
 
-      ModuleLoader.loadScript('//cdn.jsdelivr.net/simplemde/latest/simplemde.min.js', 'SimpleMDE').then((SimpleMDE?: any): void => {
         var simplemde;
         if (this.properties.toolbar === false) {
           if (this.properties.status === false) {
+            //Creates editor without status bar & toolbar
             simplemde = new SimpleMDE({
               element: document.getElementById(this.guid + "-editor"),
               toolbar: this.properties.toolbar,
@@ -57,6 +76,7 @@ export default class MarkdownWebPart extends BaseClientSideWebPart<IMarkdownWebP
             });
           }
           else {
+            //Creates editor with status bar & without toolbar
             simplemde = new SimpleMDE({
               element: document.getElementById(this.guid + "-editor"),
               toolbar: this.properties.toolbar,
@@ -67,6 +87,7 @@ export default class MarkdownWebPart extends BaseClientSideWebPart<IMarkdownWebP
         }
         else {
           if (this.properties.status === false) {
+            //Creates editor without status bar & with toolbar
             simplemde = new SimpleMDE({
               element: document.getElementById(this.guid + "-editor"),
               toolbarTips: this.properties.toolbarTips,
@@ -76,6 +97,7 @@ export default class MarkdownWebPart extends BaseClientSideWebPart<IMarkdownWebP
           }
           else {
             simplemde = new SimpleMDE({
+              //Creates editor with status bar & with toolbar
               element: document.getElementById(this.guid + "-editor"),
               toolbarTips: this.properties.toolbarTips,
               spellChecker: this.properties.spellChecker
@@ -83,16 +105,20 @@ export default class MarkdownWebPart extends BaseClientSideWebPart<IMarkdownWebP
           }
         }
         simplemde.codemirror.on("change", function(){
-            this.properties.text = simplemde.value();
+          //Function executed when the text change in rich editor
+          this.properties.text = simplemde.value();
         }.bind(this));
-      });
     }
     else {
       //Read Mode
-      ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/showdown/1.4.3/showdown.min.js', 'showdown').then((showdown?: any): void => {
-        var converter = new showdown.Converter();
-        this.domElement.innerHTML = converter.makeHtml(this.properties.text);
-      });
+      //Inits the converter
+      var converter = new showdown.Converter();
+      converter.setOption('tables', true);
+      converter.setOption('tasklists', true);
+      converter.setOption('smoothLivePreview', true);
+      converter.setOption('encodeEmails', true);
+      //Converts MD to HTML
+      this.domElement.innerHTML = converter.makeHtml(this.properties.text);
     }
   }
 
@@ -119,7 +145,7 @@ export default class MarkdownWebPart extends BaseClientSideWebPart<IMarkdownWebP
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {

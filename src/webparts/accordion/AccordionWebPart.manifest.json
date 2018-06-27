@@ -2,20 +2,19 @@
   "$schema": "../../../node_modules/@microsoft/sp-module-interfaces/lib/manifestSchemas/jsonSchemas/clientSideComponentManifestSchema.json",
 
   "id": "89d609dd-9fb6-4353-aab4-6215ac1bb7f6",
+  "alias": "Accordion",
   "componentType": "WebPart",
   "version": "0.0.1",
   "manifestVersion": 2,
 
   "preconfiguredEntries": [{
-    "groupId": "b6330715-c92a-479c-ae83-510474079988",
-    "group": { "default": "Under Development" },
+    "groupId": "4a6dc2e5-7bd2-4ab7-a830-8107d2b7ee5a",
+    "group": { "default": "Text Tools" },
     "title": { "default": "Accordion" },
-    "description": { "default": "Accordion description" },
+    "description": { "default": "As for the Web Part of the tabs, you can manage the content in the form of accordion sections. Add, edit or remove your tabs and change the content with the WYSIWYG editor." },
     "officeFabricIconFontName": "DoubleChevronDown",
     "properties": {
-      "inline": false,
-      "mode": "full",
-      "theme": "kama",
+      "inline": true,
       "collapsible": false,
       "animate": true,
       "speed": 200,

@@ -5,9 +5,11 @@
  * Author: Olivier Carpentier
  */
 import { ISPListItems, ISPListItem } from './ISPList';
-import { IWebPartContext } from '@microsoft/sp-client-preview';
+import { IWebPartContext } from '@microsoft/sp-webpart-base';
 import { IVerticalTimelineWebPartProps } from './IVerticalTimelineWebPartProps';
-import { EnvironmentType } from '@microsoft/sp-client-base';
+import { Environment, EnvironmentType } from '@microsoft/sp-core-library';
+import { SPHttpClient, SPHttpClientResponse } from '@microsoft/sp-http';
+
 import MockHttpClient from './MockHttpClient';
 
 /**
@@ -45,13 +47,13 @@ export class SPCalendarService implements ISPCalendarService {
    * Gets the pictures from a SharePoint list
    */
   public getItems(queryUrl: string): Promise<ISPListItems> {
-    if (this.context.environment.type === EnvironmentType.Local) {
+    if (Environment.type === EnvironmentType.Local) {
       //If the running environment is local, load the data from the mock
       return this.getItemsFromMock('1');
     }
     else {
       //Request the SharePoint web service
-      return this.context.httpClient.get(queryUrl).then((response: Response) => {
+      return this.context.spHttpClient.get(queryUrl, SPHttpClient.configurations.v1).then((response: SPHttpClientResponse) => {
           return response.json().then((responseFormated: any) => {
               var formatedResponse: ISPListItems = { value: []};
               //Fetchs the Json response to construct the final items list

@@ -7,26 +7,29 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneSlider,
   PropertyPaneTextField,
   PropertyPaneDropdown,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'AnimatedTextStrings';
 import { IAnimatedTextWebPartProps } from './IAnimatedTextWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 
 //Imports the property pane custom fields
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFieldFontPicker';
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
 import { PropertyFieldAlignPicker } from 'sp-client-custom-fields/lib/PropertyFieldAlignPicker';
 
-//Loads JQuery
-require('jquery');
+//Loads external JS libs
 import * as $ from 'jquery';
+require('letterfx');
+
+//Loads external CSS
+require('../../css/letterfx/letterfx.scss');
 
 /**
  * @class
@@ -35,25 +38,28 @@ import * as $ from 'jquery';
 export default class AnimatedTextWebPart extends BaseClientSideWebPart<IAnimatedTextWebPartProps> {
 
   private guid: string;
-  private scriptLoaded: boolean;
 
   /**
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
 
     //Inits the WebParts GUID
     this.guid = this.getGuid();
-    this.scriptLoaded = false;
+  }
 
-    //Loads the LetterFX Jquery plugin CSS file
-    ModuleLoader.loadCss('//tuxsudo.com/letterfx/letterfx.css');
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -78,17 +84,7 @@ export default class AnimatedTextWebPart extends BaseClientSideWebPart<IAnimated
     var html = "<div " + style + " id='" + this.guid + "-AnimatedText'>" + this.properties.text + "</div>";
     this.domElement.innerHTML = html;
 
-    if (this.renderedOnce === false || this.scriptLoaded === false) {
-      //loads the letterfx.Js plugin from the CDN
-      ModuleLoader.loadScript('//tuxsudo.com/letterfx/letterfx.js', 'jQuery').then((): void => {
-        this.renderContent();
-      });
-      this.scriptLoaded = true;
-    }
-    else {
-      this.renderContent();
-    }
-
+    this.renderContent();
   }
 
   /**
@@ -130,7 +126,7 @@ export default class AnimatedTextWebPart extends BaseClientSideWebPart<IAnimated
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -206,31 +202,51 @@ export default class AnimatedTextWebPart extends BaseClientSideWebPart<IAnimated
                 PropertyFieldAlignPicker('align', {
                   label: strings.Align,
                   initialValue: this.properties.align,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChanged: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "animatedTextAlignField"
                 }),
                 PropertyFieldFontPicker('font', {
                   label: strings.Font,
                   useSafeFont: true,
                   previewFonts: true,
                   initialValue: this.properties.font,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "animatedTextFontField"
                 }),
                 PropertyFieldFontSizePicker('fontSize', {
                   label: strings.FontSize,
                   usePixels: true,
                   preview: true,
                   initialValue: this.properties.fontSize,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "animatedTextFontSizeField"
                 }),
-                PropertyFieldColorPicker('fontColor', {
+                PropertyFieldColorPickerMini('fontColor', {
                   label: strings.FontColor,
                   initialColor: this.properties.fontColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "animatedTextFontColorField"
                 }),
-                PropertyFieldColorPicker('backgroundColor', {
+                PropertyFieldColorPickerMini('backgroundColor', {
                   label: strings.BackgroundColor,
                   initialColor: this.properties.backgroundColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "animatedTextBgColorField"
                 })
               ]
             }

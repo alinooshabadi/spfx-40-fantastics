@@ -1,11 +1,23 @@
-# SPFx 40 Fantastics Web Parts
+# SPFx Fantastic 40 Web Parts
 
-> Note: The SharePoint Framework is currently in preview and is subject to change. SharePoint Framework client-side web parts are not currently supported for use in production environments.
+![release](https://img.shields.io/badge/release-v1.0.4-blue.svg)
+![status](https://img.shields.io/badge/status-stable-green.svg)
+![mit](https://img.shields.io/badge/license-MIT-yellow.svg)
 
 This package is a sample kit of 40 great Client Side Web Parts built on the SharePoint Framework SPFx.
 You can find here different kind of high visual web parts as carousel, images galleries, custom editors, polls, charts, map, animations, etc.
 These WebParts are mainly based on best-class jQuery, React or Angular plugins and use the [sp-client-custom-fields library](https://github.com/OlivierCC/sp-client-custom-fields) to optimize the edit experience.
-Oh, and Yes, these web parts are free and open source, so have fun well to build effective SharePoint site.
+And Yes, these web parts are free and open source, so have fun well to build effective SharePoint site.
+
+These webparts are available: **English, French, Spanish, German**.
+
+**IMPORTANT NOTE: These web parts are not officially supported by Microsoft. Please use the "Issues" tab on this site to report bug or requests for development.**
+
+**Current Version**: v1.0.4 - [Click here to download and install](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Installation-process)
+
+**Current SPFx Release support** - ![GA](https://img.shields.io/badge/SPFx-General%20Availability-red.svg) - [Release Note](https://github.com/SharePoint/sp-dev-docs/wiki/Release-Notes-GA)
+
+For any question, you can also [read the FAQ](https://github.com/OlivierCC/spfx-40-fantastics/wiki/FAQ).
 
 ![Logo](./assets/logo_final.gif)
 
@@ -18,7 +30,7 @@ Overview |  Web Part |  Description
 ![3d carousel](./assets/overview3dcarousel_final.png) | [**3D Carousel**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/3D-Carousel) | Insert a 3D Carousel in your SharePoint pages. With this Web Part, you can manage your menu items and create automatically a 3D carousel.
 ![Coverflow](./assets/overviewcoverflow_final.png) | [**Coverflow**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Coverflow) | Generates a Coverflow Apple like menu in your pages. Manage your menu items with title and picture and create a cool coverflow menu.
 ![News Slider](./assets/overviewnewsslider.png) | [**News Slider**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/News-Slider) | Insert a News Slider Tiles control to your pages. In a few clicks you can create a slider with buttons allowing you to navigate horizontally in tiles. You can define your elements and customize the look and feel of your slider. This Web Part is responsive.
-![News Ticker](./assets/overviewnewsticker.png) | [**News Ticker**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/News-Ticker) | Insert a simple vertical News Ticker to display news as a simple ribbon. This web part is usefull if you want to display Breaking News BBC like information in your site
+![News Ticker](./assets/overviewnewsticker.png) | [**News Ticker**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/News-Ticker) | Insert a simple horizontal News Ticker to display news as a simple ribbon. This web part is usefull if you want to display Breaking News BBC like information in your site
 
 ## Social Tools
 
@@ -27,17 +39,16 @@ Overview |  Web Part |  Description
 ![Tweets Feed](./assets/overviewtweedsfeed.png) | [**Tweets Feed**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Tweets-Feed) |  With this Web Part, you can easily add a Twitter feed to any page. You have to specify the Twitter account you want to view messages, configure the Visual rendering, and twitter will be integrated into your site.
 ![Social Share](./assets/overviewtsocialshare.png) | [**Social Share**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Social-Share) |  A web part to insert social share buttons as Yammer, Linkedin, Twitter, Facebook and more than 100 other social providers thanks to the Addthis services.
 ![RSS Reader](./assets/overviewrssreader.png) | [**RSS Reader**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Rss-Reader) |  A web part to insert a full client side RSS/Atom Feed in your SharePoint pages. You can easily integrated a topical or competitive intelligence stream into your pages to your favorite RSS feeds.
-![Social Photo Stream](./assets/overviewsocialphotostream.png) | [**Social Photo Stream**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Social-Photo-Stream) |  A web part to insert a list of photo from populars photos sharing plateforms as Instagram, Pinterest, Flickr, Deviantart, Dribbble, Picasa, Youtube & Newsfeed.
+![Social Photo Stream](./assets/overviewsocialphotostream.png) | [**Social Photo Stream**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Social-Photo-Stream) |  A web part to insert a list of photo from populars photos sharing plateforms as Instagram, Pinterest, Flickr, Deviantart, Dribbble, & Picasa.
 
 ## Maps, Charts & Graphs
 
 Overview |  Web Part |  Description
 ------------ | ----------- | -----------
-![Bing Map](./assets/overviewbingmap.png) | [**Bing Map**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Bing-Map) | A Web Part for insert a Bing map on your page. With this Web Part, you can customize your card (size, toolbar, 2D/3D, etc.) and indicate a location and default zoom. You can enter your own key Bing to use all the features of mapping.
 ![Vertical Timeline](./assets/overviewverticaltimeline.png) | [**Vertical Timeline**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Vertical-Timeline) |  A web part to generate a Facebook like vertical Timeline from SharePoint Calendar list items. For example, this Web Part is very convenient to build a synthetic view on your major project milestones. This Web Part uses CSS3 to optimize the user experience.
 ![Pie Chart](./assets/overviewpiechart.png) | [**Pie Chart**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Pie-Chart) |  Insert a Pie chart with a few clicks in your SharePoint page. You can edit the data, choose values, colors, legends and all the graphics. You can generate graphs to fixed sizes or responsive mode.
 ![Bar Chart](./assets/overviewbarchart.png) | [**Bar Chart**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Bar-Chart) |  To generate a chart in the form of a vertical or horizontal diagram. You can simply edit the data of the chart, change the values, labels, or colors. Create simply and effectively elegant and effective dashboards for your employees.
-![Line Chart](./assets/overviewlinechart.png) | [**Line Chart**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Line-Chart) | A Web Part simple and effective to generate a line chart in a page. You can choose the points on the line, set the line and fill, color, etc. Convenient to view financial results for example.
+![Line Chart](./assets/overviewlinechart.png) | [**Line Chart**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Line-Chart) | A simple and effective Web Part to generate a line chart in a page. You can choose the points on the line, set the line and fill, color, etc. Convenient to view financial results for example.
 ![Radar Chart](./assets/overviewradarchart.png) | [**Radar Chart**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Radar-Chart) |  Offer elegant and alternative views to your data with this Web part. With the radar chart, you can for example easily see comparisons between data.
 ![Polar Chart](./assets/overviewpolarchart.png) | [**Polar Chart**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Polar-Chart) |  A web part to insert a polar chart, modify the data and the render. Very easy & quick to use in a SharePoint page.
 
@@ -83,6 +94,11 @@ Overview |  Web Part |  Description
 ![MessageBar](./assets/overviewmessagebar.png) | [**Message Bar**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Message-Bar) | Insert a message bar to your page, for example set a maintenance warning text, etc. Very convenient to share a simple and highly visible message to your visitors.
 ![StockInfo](./assets/overviewstockinfo.png) | [**Stock Info**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Stock-Info) | Generates as graph picture the current stock value of a specified stock. With this Web Part, you can for example share the current stock price of your company on your homepage. This Web Part uses the Yahoo! Financial Services.
 ![QRCode](./assets/overviewqrcode.png) | [**QR Code**](https://github.com/OlivierCC/spfx-40-fantastics/wiki/QR-Code) | Insert a QR Code in your SharePoint pages and modify the associated text, size, etc. A QRCode is very handy for example to allow your users to access simply and quickly to a page on your Intranet from a smartphone.
+
+# Installing the web parts
+
+[Click here to access to the Installation Process](https://github.com/OlivierCC/spfx-40-fantastics/wiki/Installation-process).
+You can install and test web parts without compiling the code by following this procedure.
 
 # Building the code
 

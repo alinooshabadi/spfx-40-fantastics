@@ -7,26 +7,32 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   IWebPartContext,
   PropertyPaneDropdown,
   PropertyPaneToggle,
   PropertyPaneSlider
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'TilesMenuStrings';
 import { ITilesMenuWebPartProps } from './ITilesMenuWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 
 //Imports property pane custom fields
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFieldFontPicker';
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
 import { PropertyFieldAlignPicker } from 'sp-client-custom-fields/lib/PropertyFieldAlignPicker';
 import { PropertyFieldCustomList, CustomListFieldType } from 'sp-client-custom-fields/lib/PropertyFieldCustomList';
 
+//Loads external JS libs
 require('jquery');
 import * as $ from 'jquery';
+require('unitegallery');
+require('ug-theme-tiles');
+
+//Loads external CSS files
+require('../../css/unitegallery/unite-gallery.scss');
 
 export default class TilesMenuWebPart extends BaseClientSideWebPart<ITilesMenuWebPartProps> {
 
@@ -36,15 +42,20 @@ export default class TilesMenuWebPart extends BaseClientSideWebPart<ITilesMenuWe
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
 
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
 
-    ModuleLoader.loadCss('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/css/unite-gallery.css');
-    ModuleLoader.loadCss('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/themes/default/ug-theme-default.css');
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -70,12 +81,6 @@ export default class TilesMenuWebPart extends BaseClientSideWebPart<ITilesMenuWe
       return;
     }
 
-    ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/js/unitegallery.min.js', 'jQuery').then((): void => {
-        ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/themes/tiles/ug-theme-tiles.js', 'jQuery').then((): void => {
-          this.renderContents();
-        });
-    });
-
     var outputHtml: string = '';
     outputHtml += `
       <div id="${this.guid}-gallery" style="display:none;">
@@ -100,6 +105,8 @@ export default class TilesMenuWebPart extends BaseClientSideWebPart<ITilesMenuWe
     }
     outputHtml += '</div>';
     this.domElement.innerHTML = outputHtml;
+
+    this.renderContents();
   }
 
   private renderContents(): void {
@@ -148,7 +155,7 @@ export default class TilesMenuWebPart extends BaseClientSideWebPart<ITilesMenuWe
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -165,14 +172,18 @@ export default class TilesMenuWebPart extends BaseClientSideWebPart<ITilesMenuWe
                   value: this.properties.items,
                   headerText: strings.ManageItems,
                   fields: [
-                    { title: 'Title', required: true, type: CustomListFieldType.string },
-                    { title: 'Enable', required: true, type: CustomListFieldType.boolean },
-                    { title: 'Description', required: false, hidden: true, type: CustomListFieldType.string },
-                    { title: 'Picture', required: true, hidden: true, type: CustomListFieldType.string },
-                    { title: 'Link Url', required: true, hidden: true, type: CustomListFieldType.string }
+                    { id: 'Title', title: 'Title', required: true, type: CustomListFieldType.string },
+                    { id: 'Enable', title: 'Enable', required: true, type: CustomListFieldType.boolean },
+                    { id: 'Description', title: 'Description', required: false, hidden: true, type: CustomListFieldType.string },
+                    { id: 'Picture', title: 'Picture', required: true, hidden: true, type: CustomListFieldType.picture },
+                    { id: 'Link Url', title: 'Link Url', required: true, hidden: true, type: CustomListFieldType.string }
                   ],
-                  onPropertyChange: this.onPropertyChange,
-                  context: this.context
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  context: this.context,
+                  properties: this.properties,
+                  key: 'tilesMenuListField'
                 })
               ]
             },
@@ -231,29 +242,49 @@ export default class TilesMenuWebPart extends BaseClientSideWebPart<ITilesMenuWe
                 PropertyFieldAlignPicker('textPanelAlign', {
                   label: strings.TextPanelAlignFieldLabel,
                   initialValue: this.properties.textPanelAlign,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChanged: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'tilesMenuAlignField'
                 }),
                 PropertyFieldFontPicker('textPanelFont', {
                   label: strings.TextPanelFontFieldLabel,
                   initialValue: this.properties.textPanelFont,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'tilesMenuFontField'
                 }),
                 PropertyFieldFontSizePicker('textPanelFontSize', {
                   label: strings.TextPanelFontSizeFieldLabel,
                   initialValue: this.properties.textPanelFontSize,
                   usePixels: true,
                   preview: true,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'tilesMenuFontSizeField'
                 }),
-                PropertyFieldColorPicker('textPanelFontColor', {
+                PropertyFieldColorPickerMini('textPanelFontColor', {
                   label: strings.TextPanelFontColorFieldLabel,
                   initialColor: this.properties.textPanelFontColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'tilesMenuFontColorField'
                 }),
-                PropertyFieldColorPicker('textPanelBackgroundColor', {
+                PropertyFieldColorPickerMini('textPanelBackgroundColor', {
                   label: strings.TextPanelBackgroundColorFieldLabel,
                   initialColor: this.properties.textPanelBackgroundColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'tilesMenuBgColorField'
                 })
               ]
             }
@@ -276,10 +307,14 @@ export default class TilesMenuWebPart extends BaseClientSideWebPart<ITilesMenuWe
                   max: 50,
                   step: 1
                 }),
-                PropertyFieldColorPicker('borderColor', {
+                PropertyFieldColorPickerMini('borderColor', {
                   label: strings.BorderColorFieldLabel,
                   initialColor: this.properties.borderColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'tilesMenuBorderColorField'
                 })
               ]
             }

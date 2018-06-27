@@ -2,8 +2,7 @@ declare interface IFckTextStrings {
   PropertyPaneDescription: string;
   BasicGroupName: string;
   Inline: string;
-  Mode: string;
-  Theme: string;
+  ErrorClassicSharePoint: string;
 }
 
 declare module 'fckTextStrings' {

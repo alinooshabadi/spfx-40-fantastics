@@ -9,18 +9,19 @@ import * as React from 'react';
 import * as ReactDom from 'react-dom';
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneDropdown,
   PropertyPaneToggle,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'SimplePollStrings';
 import { ISimplePollWebPartProps } from './ISimplePollWebPartProps';
 import SimplePollWebPartHost from './components/SimplePollWebPartHost';
 
 //Imports property pane custom fields
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFieldFontPicker';
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
 import { PropertyFieldSPListPicker, PropertyFieldSPListPickerOrderBy } from 'sp-client-custom-fields/lib/PropertyFieldSPListPicker';
@@ -31,12 +32,20 @@ export default class SimplePollWebPart extends BaseClientSideWebPart<ISimplePoll
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -65,7 +74,7 @@ export default class SimplePollWebPart extends BaseClientSideWebPart<ISimplePoll
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -83,8 +92,12 @@ export default class SimplePollWebPart extends BaseClientSideWebPart<ISimplePoll
                   includeHidden: false,
                   baseTemplate: 102,
                   orderBy: PropertyFieldSPListPickerOrderBy.Title,
-                  onPropertyChange: this.onPropertyChange,
-                  context: this.context
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  context: this.context,
+                  properties: this.properties,
+                  key: 'simplePollListField'
                 }),
                 PropertyPaneDropdown('chartType', {
                   label: strings.chartType,
@@ -106,19 +119,31 @@ export default class SimplePollWebPart extends BaseClientSideWebPart<ISimplePoll
                   useSafeFont: true,
                   previewFonts: true,
                   initialValue: this.properties.font,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'simplePollFontField'
                 }),
                 PropertyFieldFontSizePicker('size', {
                   label: strings.FontSizeFieldLabel,
                   usePixels: true,
                   preview: true,
                   initialValue: this.properties.size,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'simplePollSizeField'
                 }),
-                PropertyFieldColorPicker('color', {
+                PropertyFieldColorPickerMini('color', {
                   label: strings.ColorFieldLabel,
                   initialColor: this.properties.color,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'simplePollColorField'
                 })
               ]
             }

@@ -7,47 +7,55 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneSlider,
   PropertyPaneTextField,
   PropertyPaneDropdown,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'TextRotatorStrings';
 import { ITextRotatorWebPartProps } from './ITextRotatorWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 
 //Imports property pane custom fields
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFieldFontPicker';
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
 import { PropertyFieldAlignPicker } from 'sp-client-custom-fields/lib/PropertyFieldAlignPicker';
 
-require('jquery');
+//Loads external JS lib
 import * as $ from 'jquery';
+require('morphext');
+
+//Loads CSS
+require('../../css/animate/animate.scss');
+require('../../css/morphext/morphext.scss');
 
 export default class TextRotatorWebPart extends BaseClientSideWebPart<ITextRotatorWebPartProps> {
 
   private guid: string;
-  private scriptLoaded: boolean;
 
   /**
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
 
     this.guid = this.getGuid();
-    this.scriptLoaded = false;
+  }
 
-    ModuleLoader.loadCss('//cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css');
-    ModuleLoader.loadCss('//morphext.fyianlai.com/assets/css/morphext.css');
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -71,16 +79,7 @@ export default class TextRotatorWebPart extends BaseClientSideWebPart<ITextRotat
     var html = "<div " + style + " id='" + this.guid + "-TextRotator'>" + this.properties.text + "</div>";
     this.domElement.innerHTML = html;
 
-    if (this.renderedOnce === false || this.scriptLoaded === false) {
-      ModuleLoader.loadScript('//morphext.fyianlai.com/assets/js/morphext.js', 'jQuery').then((): void => {
-        this.renderContent();
-      });
-      this.scriptLoaded = true;
-    }
-    else {
-      this.renderContent();
-    }
-
+    this.renderContent();
   }
 
   private renderContent(): void {
@@ -120,7 +119,7 @@ export default class TextRotatorWebPart extends BaseClientSideWebPart<ITextRotat
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -230,31 +229,51 @@ export default class TextRotatorWebPart extends BaseClientSideWebPart<ITextRotat
                 PropertyFieldAlignPicker('align', {
                   label: strings.Align,
                   initialValue: this.properties.align,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChanged: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'textRotatorAlignField'
                 }),
                 PropertyFieldFontPicker('font', {
                   label: strings.Font,
                   useSafeFont: true,
                   previewFonts: true,
                   initialValue: this.properties.font,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'textRotatorFontField'
                 }),
                 PropertyFieldFontSizePicker('fontSize', {
                   label: strings.FontSize,
                   usePixels: true,
                   preview: true,
                   initialValue: this.properties.fontSize,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'textRotatorFontSizeField'
                 }),
-                PropertyFieldColorPicker('fontColor', {
+                PropertyFieldColorPickerMini('fontColor', {
                   label: strings.FontColor,
                   initialColor: this.properties.fontColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'textRotatorFontColorField'
                 }),
-                PropertyFieldColorPicker('backgroundColor', {
+                PropertyFieldColorPickerMini('backgroundColor', {
                   label: strings.BackgroundColor,
                   initialColor: this.properties.backgroundColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'textRotatorBgColorField'
                 })
               ]
             }

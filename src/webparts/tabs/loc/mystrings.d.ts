@@ -5,12 +5,11 @@ declare interface ITabsStrings {
   LayoutGroupName: string;
   DescriptionFieldLabel: string;
   Inline: string;
-  Mode: string;
-  Theme: string;
   ManageTabs: string;
   Tabs: string;
   DisableColor: string;
   SelectedColor: string;
+  ErrorClassicSharePoint: string;
 }
 
 declare module 'TabsStrings' {

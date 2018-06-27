@@ -7,18 +7,18 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   IWebPartContext,
   PropertyPaneDropdown,
   PropertyPaneToggle,
   PropertyPaneSlider
-} from '@microsoft/sp-client-preview';
-import { DisplayMode } from '@microsoft/sp-client-base';
-import ModuleLoader from '@microsoft/sp-module-loader';
+} from '@microsoft/sp-webpart-base';
+import { DisplayMode, Version } from '@microsoft/sp-core-library';
+import { SPComponentLoader } from '@microsoft/sp-loader';
+import { Environment, EnvironmentType } from '@microsoft/sp-core-library';
 
 import * as strings from 'AccordionStrings';
 import { IAccordionWebPartProps } from './IAccordionWebPartProps';
-import importableModuleLoader from '@microsoft/sp-module-loader';
 
 import { PropertyFieldCustomList, CustomListFieldType } from 'sp-client-custom-fields/lib/PropertyFieldCustomList';
 
@@ -26,6 +26,7 @@ import { PropertyFieldCustomList, CustomListFieldType } from 'sp-client-custom-f
 require('jquery');
 require('jqueryui');
 import * as $ from 'jquery';
+import * as JQueryUI from 'jqueryui';
 
 /**
  * @class
@@ -39,18 +40,28 @@ export default class AccordionWebPart extends BaseClientSideWebPart<IAccordionWe
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     //Initialize unique GUID
     this.guid = this.getGuid();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
 
-    //Load the JQuery smoothness CSS file
-    importableModuleLoader.loadCss('//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css');
+    if (Environment.type !== EnvironmentType.ClassicSharePoint) {
+      //Load the JQuery smoothness CSS file
+      SPComponentLoader.loadCss('//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css');
+    }
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -58,6 +69,18 @@ export default class AccordionWebPart extends BaseClientSideWebPart<IAccordionWe
    * Renders HTML code
    */
   public render(): void {
+
+    if (Environment.type === EnvironmentType.ClassicSharePoint) {
+      var errorHtml = '';
+      errorHtml += '<div style="color: red;">';
+      errorHtml += '<div style="display:inline-block; vertical-align: middle;"><i class="ms-Icon ms-Icon--Error" style="font-size: 20px"></i></div>';
+      errorHtml += '<div style="display:inline-block; vertical-align: middle;margin-left:7px;"><span>';
+      errorHtml += strings.ErrorClassicSharePoint;
+      errorHtml += '</span></div>';
+      errorHtml += '</div>';
+      this.domElement.innerHTML = errorHtml;
+      return;
+    }
 
     var html = '';
 
@@ -93,17 +116,14 @@ export default class AccordionWebPart extends BaseClientSideWebPart<IAccordionWe
 
     if (this.displayMode == DisplayMode.Edit) {
         //If the display mode is Edit, loads the CK Editor plugin
-        var fMode = 'standard';
-        if (this.properties.mode != null)
-          fMode = this.properties.mode;
-        var ckEditorCdn = '//cdn.ckeditor.com/4.5.11/{0}/ckeditor.js'.replace("{0}", fMode);
+        var ckEditorCdn = '//cdn.ckeditor.com/4.6.2/full/ckeditor.js';
         //Loads the Javascript from the CKEditor CDN
-        ModuleLoader.loadScript(ckEditorCdn, 'CKEDITOR').then((CKEDITOR: any): void => {
+        SPComponentLoader.loadScript(ckEditorCdn, { globalExportsName: 'CKEDITOR' }).then((CKEDITOR: any): void => {
           if (this.properties.inline == null || this.properties.inline === false) {
             //If mode is not inline, loads the script with the replace method
             for (var tab = 0; tab < this.properties.tabs.length; tab++) {
               CKEDITOR.replace( this.guid + '-editor-' + tab, {
-                    skin: 'kama,//cdn.ckeditor.com/4.4.3/full-all/skins/' + this.properties.theme + '/'
+                    skin: 'moono-lisa,//cdn.ckeditor.com/4.6.2/full-all/skins/moono-lisa/'
               });
             }
 
@@ -112,7 +132,7 @@ export default class AccordionWebPart extends BaseClientSideWebPart<IAccordionWe
             //Mode is inline, so loads the script with the inline method
             for (var tab2 = 0; tab2 < this.properties.tabs.length; tab2++) {
               CKEDITOR.inline( this.guid + '-editor-' + tab2, {
-                    skin: 'kama,//cdn.ckeditor.com/4.4.3/full-all/skins/' + this.properties.theme + '/'
+                    skin: 'moono-lisa,//cdn.ckeditor.com/4.6.2/full-all/skins/moono-lisa/'
               });
             }
           }
@@ -157,7 +177,7 @@ export default class AccordionWebPart extends BaseClientSideWebPart<IAccordionWe
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -174,10 +194,14 @@ export default class AccordionWebPart extends BaseClientSideWebPart<IAccordionWe
                   value: this.properties.tabs,
                   headerText: strings.ManageAccordion,
                   fields: [
-                    { title: 'Title', required: true, type: CustomListFieldType.string }
+                    { id: 'Title', title: 'Title', required: true, type: CustomListFieldType.string }
                   ],
-                  onPropertyChange: this.onPropertyChange,
-                  context: this.context
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  context: this.context,
+                  key: "accordionCustomListField"
                 }),
                 PropertyPaneToggle('collapsible', {
                   label: strings.Collapsible,
@@ -206,21 +230,6 @@ export default class AccordionWebPart extends BaseClientSideWebPart<IAccordionWe
               groupFields: [
                 PropertyPaneToggle('inline', {
                   label: strings.Inline,
-                }),
-                PropertyPaneDropdown('mode', {
-                  label: strings.Mode,
-                  options: [
-                    {key: 'basic', text: 'basic'},
-                    {key: 'standard', text: 'standard'},
-                    {key: 'full', text: 'full'}
-                  ]
-                }),
-                PropertyPaneDropdown('theme', {
-                  label: strings.Theme,
-                  options: [
-                    {key: 'kama', text: 'kama'},
-                    {key: 'moono', text: 'moono'}
-                  ]
                 })
               ]
             }

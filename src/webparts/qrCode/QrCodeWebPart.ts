@@ -7,20 +7,20 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneTextField,
-  PropertyPaneSlider,
   PropertyPaneDropdown,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'QrCodeStrings';
 import { IQrCodeWebPartProps } from './IQrCodeWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 
-require('jquery');
+import { PropertyFieldDimensionPicker } from 'sp-client-custom-fields/lib/PropertyFieldDimensionPicker';
 
 import * as $ from 'jquery';
+require('qrcode');
 
 export default class QrCodeWebPart extends BaseClientSideWebPart<IQrCodeWebPartProps> {
 
@@ -30,14 +30,22 @@ export default class QrCodeWebPart extends BaseClientSideWebPart<IQrCodeWebPartP
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -48,24 +56,24 @@ export default class QrCodeWebPart extends BaseClientSideWebPart<IQrCodeWebPartP
 
     var html = '<div id="' + this.guid + '"></div>';
     this.domElement.innerHTML = html;
+    var width: number = Number(this.properties.dimension.width.replace("px", "").replace("%", ""));
+    var height: number = Number(this.properties.dimension.height.replace("px", "").replace("%", ""));
 
-     ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/jquery.qrcode/1.0/jquery.qrcode.min.js', 'jQuery').then((): void => {
-        if (this.properties.mode == "table") {
+    if (this.properties.mode == "table") {
             ($ as any)('#' + this.guid).qrcode({
                 render: "table",
                 text: this.properties.text,
-                width: this.properties.width,
-                height: this.properties.height
+                width: width,
+                height: height
             });
-        }
-        else {
+    }
+    else {
             ($ as any)('#' + this.guid).qrcode({
                 text: this.properties.text,
-                width: this.properties.width,
-                height: this.properties.height
+                width: width,
+                height: height
             });
-        }
-    });
+    }
   }
 
   /**
@@ -91,7 +99,7 @@ export default class QrCodeWebPart extends BaseClientSideWebPart<IQrCodeWebPartP
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -106,17 +114,19 @@ export default class QrCodeWebPart extends BaseClientSideWebPart<IQrCodeWebPartP
                 PropertyPaneTextField('text', {
                   label: strings.Text
                 }),
-                PropertyPaneSlider('width', {
-                  label: strings.Width,
-                  min: 1,
-                  max: 800,
-                  step: 1
-                }),
-                PropertyPaneSlider('height', {
-                  label: strings.Height,
-                  min: 1,
-                  max: 800,
-                  step: 1
+                PropertyFieldDimensionPicker('dimension', {
+                  label: strings.Dimension,
+                  initialValue: this.properties.dimension,
+                  preserveRatio: true,
+                  preserveRatioEnabled: true,
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  disabled: false,
+                  onGetErrorMessage: null,
+                  deferredValidationTime: 0,
+                  key: 'qrCodeDimensionFieldId'
                 }),
                 PropertyPaneDropdown('mode', {
                   label: strings.Mode,

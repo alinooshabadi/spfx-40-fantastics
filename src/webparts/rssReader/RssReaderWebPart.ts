@@ -7,24 +7,25 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneTextField,
   PropertyPaneSlider,
   PropertyPaneToggle,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'RssReaderStrings';
 import { IRssReaderWebPartProps } from './IRssReaderWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 
 //Imports property pane custom fields
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFieldFontPicker';
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
 
-require('jquery');
 import * as $ from 'jquery';
+require('moment');
+require('feedek');
 
 export default class RssReaderWebPart extends BaseClientSideWebPart<IRssReaderWebPartProps> {
 
@@ -34,14 +35,22 @@ export default class RssReaderWebPart extends BaseClientSideWebPart<IRssReaderWe
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -63,8 +72,6 @@ export default class RssReaderWebPart extends BaseClientSideWebPart<IRssReaderWe
     `;
     this.domElement.innerHTML = html;
 
-     ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.2/moment.min.js', 'jQuery').then((): void => {
-       ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/FeedEk/3.0.0/js/FeedEk.min.js', 'jQuery').then((): void => {
         ($ as any)('#' + this.guid).FeedEk({
             FeedUrl: this.properties.feedUrl,
             MaxCount : this.properties.maxCount,
@@ -75,8 +82,6 @@ export default class RssReaderWebPart extends BaseClientSideWebPart<IRssReaderWe
             DateFormat: this.properties.dateFormat,
             DateFormatLang: this.properties.dateFormatLang
         });
-      });
-    });
   }
 
   /**
@@ -102,7 +107,7 @@ export default class RssReaderWebPart extends BaseClientSideWebPart<IRssReaderWe
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -152,24 +157,40 @@ export default class RssReaderWebPart extends BaseClientSideWebPart<IRssReaderWe
                 PropertyFieldFontPicker('font', {
                   label: strings.font,
                   initialValue: this.properties.font,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'rssReaderFontField'
                 }),
                 PropertyFieldFontSizePicker('fontSize', {
                   label: strings.fontSize,
                   initialValue: this.properties.fontSize,
                   usePixels: true,
                   preview: true,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'rssReaderFontSizeField'
                 }),
-                PropertyFieldColorPicker('fontColor', {
+                PropertyFieldColorPickerMini('fontColor', {
                   label: strings.fontColor,
                   initialColor: this.properties.fontColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'rssReaderFontColorField'
                 }),
-                PropertyFieldColorPicker('backgroundColor', {
+                PropertyFieldColorPickerMini('backgroundColor', {
                   label: strings.backgroundColor,
                   initialColor: this.properties.backgroundColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'rssReaderBgColorField'
                 })
               ]
             }

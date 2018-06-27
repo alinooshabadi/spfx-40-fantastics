@@ -7,18 +7,23 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneTextField,
   PropertyPaneDropdown,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'MediaPlayerStrings';
 import { IMediaPlayerWebPartProps } from './IMediaPlayerWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 
 //Imports property pane custom fields
 import { PropertyFieldCustomList, CustomListFieldType } from 'sp-client-custom-fields/lib/PropertyFieldCustomList';
+
+//Loads external CSS
+require('../../css/mediaPlayer/plyr.scss');
+
+var plyr: any = require('plyr');
 
 export default class MediaPlayerWebPart extends BaseClientSideWebPart<IMediaPlayerWebPartProps> {
 
@@ -28,16 +33,22 @@ export default class MediaPlayerWebPart extends BaseClientSideWebPart<IMediaPlay
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
 
-    ModuleLoader.loadCss('//cdn.plyr.io/2.0.9/plyr.css');
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -75,9 +86,7 @@ export default class MediaPlayerWebPart extends BaseClientSideWebPart<IMediaPlay
     }
     this.domElement.innerHTML = html;
 
-    ModuleLoader.loadScript('//cdn.plyr.io/2.0.9/plyr.js', 'plyr').then((plyr?: any): void => {
-      plyr.setup();
-    });
+    plyr.setup();
   }
 
   /**
@@ -103,7 +112,7 @@ export default class MediaPlayerWebPart extends BaseClientSideWebPart<IMediaPlay
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -144,12 +153,16 @@ export default class MediaPlayerWebPart extends BaseClientSideWebPart<IMediaPlay
                   value: this.properties.html5captions,
                   headerText: strings.html5captions,
                   fields: [
-                    { title: 'Title', required: true, type: CustomListFieldType.string },
-                    { title: 'SrcLen', required: false, hidden: false, type: CustomListFieldType.string },
-                    { title: 'Url', required: true, hidden: false, type: CustomListFieldType.string }
+                    { id: 'Title', title: 'Title', required: true, type: CustomListFieldType.string },
+                    { id: 'SrcLen', title: 'SrcLen', required: false, hidden: false, type: CustomListFieldType.string },
+                    { id: 'Url', title: 'Url', required: true, hidden: false, type: CustomListFieldType.string }
                   ],
-                  onPropertyChange: this.onPropertyChange,
-                  context: this.context
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  context: this.context,
+                  properties: this.properties,
+                  key: 'mediaPlayerListField'
                 })
               ]
             }

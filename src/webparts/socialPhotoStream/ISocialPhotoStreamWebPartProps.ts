@@ -1,3 +1,5 @@
+import { IPropertyFieldDimension } from 'sp-client-custom-fields/lib/PropertyFieldDimensionPicker';
+
 /**
  * @file
  * QR Code Web Part for SharePoint Framework SPFx
@@ -8,9 +10,9 @@
 export interface ISocialPhotoStreamWebPartProps {
   network: string;
   userName: string;
+  accessKey: string;
   limit: number;
   overlay: boolean;
-  width: number;
-  height: number;
+  dimension: IPropertyFieldDimension;
   spacing: number;
 }

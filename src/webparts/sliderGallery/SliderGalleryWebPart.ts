@@ -7,47 +7,56 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   IWebPartContext,
   PropertyPaneDropdown,
   PropertyPaneToggle,
   PropertyPaneSlider
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'sliderGalleryStrings';
 import { ISliderGalleryWebPartProps } from './ISliderGalleryWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 import { SPPicturesListService } from './SPPicturesListService';
 import { ISPListItem } from './ISPList';
 
 //Imports property pane custom fields
 import { PropertyFieldSPListQuery, PropertyFieldSPListQueryOrderBy } from 'sp-client-custom-fields/lib/PropertyFieldSPListQuery';
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFieldFontPicker';
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
 import { PropertyFieldAlignPicker } from 'sp-client-custom-fields/lib/PropertyFieldAlignPicker';
 
-require('jquery');
+//Loads external JS libs
 import * as $ from 'jquery';
+require('unitegallery');
+require('ug-theme-slider');
+
+//Loads external CSS files
+require('../../css/unitegallery/unite-gallery.scss');
 
 export default class SliderGalleryWebPart extends BaseClientSideWebPart<ISliderGalleryWebPartProps> {
 
   private guid: string;
-  private scriptLoaded: boolean = false;
 
   /**
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
 
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
 
-    ModuleLoader.loadCss('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/css/unite-gallery.css');
-    ModuleLoader.loadCss('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/themes/default/ug-theme-default.css');
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -71,15 +80,6 @@ export default class SliderGalleryWebPart extends BaseClientSideWebPart<ISliderG
         </div>
       `;
       return;
-    }
-
-    if (this.renderedOnce === false || this.scriptLoaded == false) {
-      ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/js/unitegallery.min.js', 'jQuery').then((): void => {
-        ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/unitegallery/1.7.28/themes/slider/ug-theme-slider.js', 'jQuery').then((): void => {
-          this.renderContents();
-        });
-      });
-      this.scriptLoaded = true;
     }
 
     const picturesListService: SPPicturesListService = new SPPicturesListService(this.properties, this.context);
@@ -168,7 +168,7 @@ export default class SliderGalleryWebPart extends BaseClientSideWebPart<ISliderG
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -190,8 +190,12 @@ export default class SliderGalleryWebPart extends BaseClientSideWebPart<ISliderG
                   showMax: true,
                   showFilters: true,
                   max: 100,
-                  onPropertyChange: this.onPropertyChange,
-                  context: this.context
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  context: this.context,
+                  properties: this.properties,
+                  key: 'sliderGalleryQueryField'
                 })
               ]
             },
@@ -276,29 +280,49 @@ export default class SliderGalleryWebPart extends BaseClientSideWebPart<ISliderG
                 PropertyFieldAlignPicker('textPanelAlign', {
                   label: strings.TextPanelAlignFieldLabel,
                   initialValue: this.properties.textPanelAlign,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChanged: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'sliderGalleryAlignField'
                 }),
                 PropertyFieldFontPicker('textPanelFont', {
                   label: strings.TextPanelFontFieldLabel,
                   initialValue: this.properties.textPanelFont,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'sliderGalleryFontField'
                 }),
                 PropertyFieldFontSizePicker('textPanelFontSize', {
                   label: strings.TextPanelFontSizeFieldLabel,
                   initialValue: this.properties.textPanelFontSize,
                   usePixels: true,
                   preview: true,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'sliderGalleryFontSizeField'
                 }),
-                PropertyFieldColorPicker('textPanelFontColor', {
+                PropertyFieldColorPickerMini('textPanelFontColor', {
                   label: strings.TextPanelFontColorFieldLabel,
                   initialColor: this.properties.textPanelFontColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'sliderGalleryFontColorField'
                 }),
-                PropertyFieldColorPicker('textPanelBackgroundColor', {
+                PropertyFieldColorPickerMini('textPanelBackgroundColor', {
                   label: strings.TextPanelBackgroundColorFieldLabel,
                   initialColor: this.properties.textPanelBackgroundColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'sliderGalleryBgColorField'
                 })
               ]
             }

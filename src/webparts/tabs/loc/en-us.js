@@ -6,11 +6,10 @@ define([], function() {
     "LayoutGroupName": "Layout",
     "DescriptionFieldLabel": "Description Field",
     "Inline": "Inline",
-    "Mode": "Toolbar (must refresh page)",
-    "Theme": "Theme (must refresh page)",
     "ManageTabs": "Manage Tabs",
     "Tabs": "Tabs",
     "DisableColor": "Inactive Tab Color",
-    "SelectedColor": "Selected Tab Border Color"
+    "SelectedColor": "Selected Tab Border Color",
+    "ErrorClassicSharePoint": "Sorry, but this Web Part does not work in a classic SharePoint site, but only in a modern site."
   }
 });

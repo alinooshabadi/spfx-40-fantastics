@@ -7,23 +7,26 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneTextField,
   PropertyPaneSlider,
   PropertyPaneToggle,
   PropertyPaneDropdown,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'LineChartStrings';
 import { ILineChartWebPartProps } from './ILineChartWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 
 //Imports property pane custom fields
 import { PropertyFieldCustomList, CustomListFieldType } from 'sp-client-custom-fields/lib/PropertyFieldCustomList';
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFieldFontPicker';
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
+import { PropertyFieldDimensionPicker } from 'sp-client-custom-fields/lib/PropertyFieldDimensionPicker';
+
+var Chart: any = require('chartjs');
 
 export default class LineChartWebPart extends BaseClientSideWebPart<ILineChartWebPartProps> {
 
@@ -33,14 +36,22 @@ export default class LineChartWebPart extends BaseClientSideWebPart<ILineChartWe
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   private getDataTab(property: string): string[] {
@@ -57,16 +68,14 @@ export default class LineChartWebPart extends BaseClientSideWebPart<ILineChartWe
    */
   public render(): void {
 
-    var html = '<canvas id="' + this.guid + '" width="' + this.properties.width + '" height="' + this.properties.width + '"></canvas>';
+    var html = '<canvas id="' + this.guid + '" width="' + this.properties.dimension.width + '" height="' + this.properties.dimension.height + '"></canvas>';
     this.domElement.innerHTML = html;
 
-    ModuleLoader.loadScript('//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.3.0/Chart.min.js', 'Chart').then((Chart?: any): void => {
-
         var data = {
-        labels: this.getDataTab(strings.Label),
+        labels: this.getDataTab("Label"),
         datasets: [
             {
-                data: this.getDataTab(strings.Value),
+                data: this.getDataTab("Value"),
                 backgroundColor: this.properties.fillColor,
                 pointStyle: this.properties.pointStyle,
                 fill: this.properties.fill,
@@ -116,9 +125,6 @@ export default class LineChartWebPart extends BaseClientSideWebPart<ILineChartWe
           options: options
       });
 
-    });
-
-
   }
 
   /**
@@ -144,7 +150,7 @@ export default class LineChartWebPart extends BaseClientSideWebPart<ILineChartWe
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -161,26 +167,32 @@ export default class LineChartWebPart extends BaseClientSideWebPart<ILineChartWe
                   value: this.properties.items,
                   headerText: strings.ManageItems,
                   fields: [
-                    { title: strings.Label, required: true, type: CustomListFieldType.string },
-                    { title: strings.Value, required: true, type: CustomListFieldType.number }
+                    { id: 'Label', title: "Label", required: true, type: CustomListFieldType.string },
+                    { id: 'Value', title: "Value", required: true, type: CustomListFieldType.number }
                   ],
-                  onPropertyChange: this.onPropertyChange,
-                  context: this.context
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  context: this.context,
+                  properties: this.properties,
+                  key: 'lineChartListField'
                 }),
                 PropertyPaneToggle('responsive', {
                   label: strings.Responsive,
                 }),
-                PropertyPaneSlider('width', {
-                  label: strings.Width,
-                  min: 1,
-                  max: 800,
-                  step: 1
-                }),
-                PropertyPaneSlider('height', {
-                  label: strings.Height,
-                  min: 1,
-                  max: 800,
-                  step: 1
+                PropertyFieldDimensionPicker('dimension', {
+                  label: strings.Dimension,
+                  initialValue: this.properties.dimension,
+                  preserveRatio: true,
+                  preserveRatioEnabled: true,
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  disabled: false,
+                  onGetErrorMessage: null,
+                  deferredValidationTime: 0,
+                  key: 'lineChartDimensionFieldId'
                 })
               ]
             },
@@ -222,10 +234,14 @@ export default class LineChartWebPart extends BaseClientSideWebPart<ILineChartWe
                     {key: 'dash', text: 'dash'}
                   ]
                 }),
-                PropertyFieldColorPicker('fillColor', {
+                PropertyFieldColorPickerMini('fillColor', {
                   label: strings.FillColor,
                   initialColor: this.properties.fillColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'lineChartFillColorField'
                 })
               ]
             },
@@ -252,19 +268,31 @@ export default class LineChartWebPart extends BaseClientSideWebPart<ILineChartWe
                   useSafeFont: true,
                   previewFonts: true,
                   initialValue: this.properties.titleFont,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'lineChartTitleFontField'
                 }),
                 PropertyFieldFontSizePicker('titleSize', {
                   label: strings.TitleSize,
                   usePixels: true,
                   preview: true,
                   initialValue: this.properties.titleSize,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'lineChartTitleSizeField'
                 }),
-                PropertyFieldColorPicker('titleColor', {
+                PropertyFieldColorPickerMini('titleColor', {
                   label: strings.TitleColor,
                   initialColor: this.properties.titleColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'lineChartTitleColorField'
                 })
               ]
             }

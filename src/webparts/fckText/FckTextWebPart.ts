@@ -7,16 +7,16 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   IWebPartContext,
-  PropertyPaneDropdown,
   PropertyPaneToggle
-} from '@microsoft/sp-client-preview';
-import { DisplayMode } from '@microsoft/sp-client-base';
+} from '@microsoft/sp-webpart-base';
+import { DisplayMode, Version } from '@microsoft/sp-core-library';
+import { Environment, EnvironmentType } from '@microsoft/sp-core-library';
 
 import * as strings from 'fckTextStrings';
 import { IFckTextWebPartProps } from './IFckTextWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
+import { SPComponentLoader } from '@microsoft/sp-loader';
 
 export default class FckTextWebPart extends BaseClientSideWebPart<IFckTextWebPartProps> {
 
@@ -26,14 +26,22 @@ export default class FckTextWebPart extends BaseClientSideWebPart<IFckTextWebPar
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -42,24 +50,34 @@ export default class FckTextWebPart extends BaseClientSideWebPart<IFckTextWebPar
    */
   public render(): void {
 
+    if (Environment.type === EnvironmentType.ClassicSharePoint) {
+      var errorHtml = '';
+      errorHtml += '<div style="color: red;">';
+      errorHtml += '<div style="display:inline-block; vertical-align: middle;"><i class="ms-Icon ms-Icon--Error" style="font-size: 20px"></i></div>';
+      errorHtml += '<div style="display:inline-block; vertical-align: middle;margin-left:7px;"><span>';
+      errorHtml += strings.ErrorClassicSharePoint;
+      errorHtml += '</span></div>';
+      errorHtml += '</div>';
+      this.domElement.innerHTML = errorHtml;
+      return;
+    }
+
+
     if (this.displayMode == DisplayMode.Edit) {
       //Edit mode
       var html = '';
       html += "<textarea name='" + this.guid + "-editor' id='" + this.guid + "-editor'>" + this.properties.text + "</textarea>";
       this.domElement.innerHTML = html;
 
-      var fMode = 'standard';
-      if (this.properties.mode != null)
-        fMode = this.properties.mode;
-      var ckEditorCdn = '//cdn.ckeditor.com/4.5.11/{0}/ckeditor.js'.replace("{0}", fMode);
-      ModuleLoader.loadScript(ckEditorCdn, 'CKEDITOR').then((CKEDITOR: any): void => {
+      var ckEditorCdn: string = '//cdn.ckeditor.com/4.6.2/full/ckeditor.js';
+      SPComponentLoader.loadScript(ckEditorCdn, { globalExportsName: 'CKEDITOR' }).then((CKEDITOR: any): void => {
         if (this.properties.inline == null || this.properties.inline === false)
           CKEDITOR.replace( this.guid + '-editor', {
-              skin: 'kama,//cdn.ckeditor.com/4.4.3/full-all/skins/' + this.properties.theme + '/'
+              skin: 'moono-lisa,//cdn.ckeditor.com/4.6.2/full-all/skins/moono-lisa/'
           }  );
         else
           CKEDITOR.inline( this.guid + '-editor', {
-              skin: 'kama,//cdn.ckeditor.com/4.4.3/full-all/skins/' + this.properties.theme + '/'
+              skin: 'moono-lisa,//cdn.ckeditor.com/4.6.2/full-all/skins/moono-lisa/'
           }   );
 
         for (var i in CKEDITOR.instances) {
@@ -68,7 +86,7 @@ export default class FckTextWebPart extends BaseClientSideWebPart<IFckTextWebPar
             //CKEDITOR.instances[i].updateElement();
             elm.sender.updateElement();
             var value = ((document.getElementById(this.guid + '-editor')) as any).value;
-            if (this.onPropertyChange && value != null) {
+            if (this.onPropertyPaneFieldChanged && value != null) {
               this.properties.text = value;
             }
           });
@@ -104,7 +122,7 @@ export default class FckTextWebPart extends BaseClientSideWebPart<IFckTextWebPar
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -118,21 +136,6 @@ export default class FckTextWebPart extends BaseClientSideWebPart<IFckTextWebPar
               groupFields: [
                 PropertyPaneToggle('inline', {
                   label: strings.Inline,
-                }),
-                PropertyPaneDropdown('mode', {
-                  label: strings.Mode,
-                  options: [
-                    {key: 'basic', text: 'basic'},
-                    {key: 'standard', text: 'standard'},
-                    {key: 'full', text: 'full'}
-                  ]
-                }),
-                PropertyPaneDropdown('theme', {
-                  label: strings.Theme,
-                  options: [
-                    {key: 'kama', text: 'kama'},
-                    {key: 'moono', text: 'moono'}
-                  ]
                 })
               ]
             }

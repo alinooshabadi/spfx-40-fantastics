@@ -4,10 +4,10 @@ define([], function() {
     "BasicGroupName": "Settings",
     "network": "Network",
     "userName": "User Name",
+    "accessKey": "Access Key",
     "limit": "Limit",
     "overlay": "Overlay",
-    "width": "Thumbnail Width",
-    "height": "Thumbnail Height",
+    "dimension": "Thumbnail size",
     "spacing": "Spacing"
   }
 });

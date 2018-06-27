@@ -4,7 +4,6 @@ define([], function() {
     "BasicGroupName": "Text Editor Settings",
     "DescriptionFieldLabel": "Description Field",
     "Inline": "Inline",
-    "Mode": "Toolbar (must refresh page)",
-    "Theme": "Theme (must refresh page)"
+    "ErrorClassicSharePoint": "Sorry, but this Web Part does not work in a classic SharePoint site, but only in a modern site."
   }
 });

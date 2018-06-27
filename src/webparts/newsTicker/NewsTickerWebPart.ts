@@ -7,19 +7,20 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneTextField,
   PropertyPaneSlider,
   PropertyPaneToggle,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'NewsTickerStrings';
 import { INewsTickerWebPartProps } from './INewsTickerWebPartProps';
 
 //Imports property pane custom fields
 import { PropertyFieldCustomList, CustomListFieldType } from 'sp-client-custom-fields/lib/PropertyFieldCustomList';
-import { PropertyFieldColorPicker } from 'sp-client-custom-fields/lib/PropertyFieldColorPicker';
+import { PropertyFieldColorPickerMini } from 'sp-client-custom-fields/lib/PropertyFieldColorPickerMini';
 import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFieldFontPicker';
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
 
@@ -31,14 +32,22 @@ export default class NewsTickerWebPart extends BaseClientSideWebPart<INewsTicker
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -152,7 +161,7 @@ export default class NewsTickerWebPart extends BaseClientSideWebPart<INewsTicker
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -169,12 +178,16 @@ export default class NewsTickerWebPart extends BaseClientSideWebPart<INewsTicker
                   value: this.properties.items,
                   headerText: strings.ManageItems,
                   fields: [
-                    { title: 'Title', required: true, type: CustomListFieldType.string },
-                    { title: 'Enable', required: true, type: CustomListFieldType.boolean },
-                    { title: 'Link Url', required: true, hidden: true, type: CustomListFieldType.string }
+                    { id: 'Title', title: 'Title', required: true, type: CustomListFieldType.string },
+                    { id: 'Enable', title: 'Enable', required: true, type: CustomListFieldType.boolean },
+                    { id: 'Link Url', title: 'Link Url', required: true, hidden: true, type: CustomListFieldType.string }
                   ],
-                  onPropertyChange: this.onPropertyChange,
-                  context: this.context
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  context: this.context,
+                  properties: this.properties,
+                  key: 'newsTickerListField'
                 }),
                 PropertyPaneSlider('speed', {
                   label: strings.Speed,
@@ -202,10 +215,14 @@ export default class NewsTickerWebPart extends BaseClientSideWebPart<INewsTicker
                   max: 10,
                   step: 1
                 }),
-                PropertyFieldColorPicker('backgroundColor', {
+                PropertyFieldColorPickerMini('backgroundColor', {
                   label: strings.BackgroundColor,
                   initialColor: this.properties.backgroundColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'newsTickerBgColorField'
                 })
               ]
             },
@@ -218,19 +235,31 @@ export default class NewsTickerWebPart extends BaseClientSideWebPart<INewsTicker
                 PropertyFieldFontPicker('font', {
                   label: strings.Font,
                   initialValue: this.properties.font,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'newsTickerFontField'
                 }),
                 PropertyFieldFontSizePicker('fontSize', {
                   label: strings.FontSize,
                   initialValue: this.properties.fontSize,
                   usePixels: true,
                   preview: true,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'newsTickerFontSizeField'
                 }),
-                PropertyFieldColorPicker('fontColor', {
+                PropertyFieldColorPickerMini('fontColor', {
                   label: strings.FontColor,
                   initialColor: this.properties.fontColor,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'newsTickerFontColorField'
                 })
               ]
             },
@@ -240,19 +269,31 @@ export default class NewsTickerWebPart extends BaseClientSideWebPart<INewsTicker
                 PropertyFieldFontPicker('fontMssg', {
                   label: strings.Font,
                   initialValue: this.properties.fontMssg,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'newsTickerFontMssgField'
                 }),
                 PropertyFieldFontSizePicker('fontSizeMssg', {
                   label: strings.FontSize,
                   initialValue: this.properties.fontSizeMssg,
                   usePixels: true,
                   preview: true,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'newsTickerFontSizeMssgField'
                 }),
-                PropertyFieldColorPicker('fontColorMssg', {
+                PropertyFieldColorPickerMini('fontColorMssg', {
                   label: strings.FontColor,
                   initialColor: this.properties.fontColorMssg,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: 'newsTickerFontColorMssgField'
                 })
               ]
             }

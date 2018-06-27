@@ -7,14 +7,16 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneTextField,
-  PropertyPaneSlider,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'StockInfoStrings';
 import { IStockInfoWebPartProps } from './IStockInfoWebPartProps';
+import { PropertyFieldDimensionPicker } from 'sp-client-custom-fields/lib/PropertyFieldDimensionPicker';
+
 
 export default class StockInfoWebPart extends BaseClientSideWebPart<IStockInfoWebPartProps> {
 
@@ -22,12 +24,20 @@ export default class StockInfoWebPart extends BaseClientSideWebPart<IStockInfoWe
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -53,7 +63,10 @@ export default class StockInfoWebPart extends BaseClientSideWebPart<IStockInfoWe
       return;
     }
 
-    var html = '<img src="//chart.finance.yahoo.com/t?s=' + this.properties.stock + '&amp;lang=' + this.properties.lang + '&amp;region=' + this.properties.region + '&amp;width=' + this.properties.width + '&amp;height=' + this.properties.height + '" alt="" width="' + this.properties.width + '" height="' + this.properties.height + '">';
+    var width: number = Number(this.properties.dimension.width.replace("px", "").replace("%", ""));
+    var height: number = Number(this.properties.dimension.height.replace("px", "").replace("%", ""));
+
+    var html = '<img src="//chart.finance.yahoo.com/t?s=' + this.properties.stock + '&amp;lang=' + this.properties.lang + '&amp;region=' + this.properties.region + '&amp;width=' + width + '&amp;height=' + height + '" alt="" width="' + width + '" height="' + height + '">';
 
     this.domElement.innerHTML = html;
   }
@@ -62,7 +75,7 @@ export default class StockInfoWebPart extends BaseClientSideWebPart<IStockInfoWe
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -77,17 +90,19 @@ export default class StockInfoWebPart extends BaseClientSideWebPart<IStockInfoWe
                 PropertyPaneTextField('stock', {
                   label: strings.Stock
                 }),
-                PropertyPaneSlider('width', {
-                  label: strings.Width,
-                  min: 1,
-                  max: 800,
-                  step: 1
-                }),
-                PropertyPaneSlider('height', {
-                  label: strings.Height,
-                  min: 1,
-                  max: 800,
-                  step: 1
+                PropertyFieldDimensionPicker('dimension', {
+                  label: strings.Dimension,
+                  initialValue: this.properties.dimension,
+                  preserveRatio: true,
+                  preserveRatioEnabled: true,
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  disabled: false,
+                  onGetErrorMessage: null,
+                  deferredValidationTime: 0,
+                  key: 'stockInfoDimensionFieldId'
                 }),
                  PropertyPaneTextField('lang', {
                   label: strings.Lang

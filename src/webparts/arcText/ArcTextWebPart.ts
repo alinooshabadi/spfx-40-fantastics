@@ -7,13 +7,14 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   IWebPartContext,
   PropertyPaneTextField,
   PropertyPaneToggle,
   PropertyPaneSlider,
   PropertyPaneDropdown
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'arcTextStrings';
 import { IArcTextWebPartProps } from './IArcTextWebPartProps';
@@ -24,9 +25,8 @@ import { PropertyFieldFontPicker } from 'sp-client-custom-fields/lib/PropertyFie
 import { PropertyFieldFontSizePicker } from 'sp-client-custom-fields/lib/PropertyFieldFontSizePicker';
 
 //Loads JQuery & Arctext Javascript libraries
-require('jquery');
-require('arctext');
 import * as $ from 'jquery';
+require('arctext');
 
 /**
  * @class
@@ -40,15 +40,24 @@ export default class ArcTextWebPart extends BaseClientSideWebPart<IArcTextWebPar
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     //Inits the WebParts GUID
     this.guid = this.getGuid();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+    this.renderContents = this.renderContents.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -66,14 +75,11 @@ export default class ArcTextWebPart extends BaseClientSideWebPart<IArcTextWebPar
    * Renders JavaScript JQuery calls
    */
   private renderContents(): void {
-    if (($ as any)('#' + this.guid + '-arc') != null) {
-      //Calls the arctext plugin init method
-      ($ as any)('#' + this.guid + '-arc').arctext({
-          radius: this.properties.radius,
-          rotate: this.properties.rotateLetters,
-          dir: this.properties.reverse === true ? -1 : 1
-      });
-    }
+    ($ as any)('#' + this.guid + '-arc').arctext({
+        radius: this.properties.radius,
+        rotate: this.properties.rotateLetters,
+        dir: this.properties.reverse === true ? -1 : 1
+    });
   }
 
   /**
@@ -99,7 +105,7 @@ export default class ArcTextWebPart extends BaseClientSideWebPart<IArcTextWebPar
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -146,19 +152,31 @@ export default class ArcTextWebPart extends BaseClientSideWebPart<IArcTextWebPar
                   useSafeFont: true,
                   previewFonts: true,
                   initialValue: this.properties.font,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "arcTextFontField"
                 }),
                 PropertyFieldFontSizePicker('size', {
                   label: strings.FontSizeFieldLabel,
                   usePixels: true,
                   preview: true,
                   initialValue: this.properties.size,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "arcTextFontSizeField"
                 }),
                 PropertyFieldColorPicker('color', {
                   label: strings.ColorFieldLabel,
                   initialColor: this.properties.color,
-                  onPropertyChange: this.onPropertyChange
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  key: "arcTextColorField"
                 })
               ]
             }

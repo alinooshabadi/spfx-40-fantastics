@@ -7,20 +7,22 @@
  */
 import {
   BaseClientSideWebPart,
-  IPropertyPaneSettings,
+  IPropertyPaneConfiguration,
   PropertyPaneTextField,
   PropertyPaneSlider,
   PropertyPaneDropdown,
   PropertyPaneToggle,
   IWebPartContext
-} from '@microsoft/sp-client-preview';
+} from '@microsoft/sp-webpart-base';
+import { Version } from '@microsoft/sp-core-library';
 
 import * as strings from 'SocialPhotoStreamStrings';
 import { ISocialPhotoStreamWebPartProps } from './ISocialPhotoStreamWebPartProps';
-import ModuleLoader from '@microsoft/sp-module-loader';
 
-require('jquery');
+import { PropertyFieldDimensionPicker } from 'sp-client-custom-fields/lib/PropertyFieldDimensionPicker';
+
 import * as $ from 'jquery';
+require('socialStream');
 
 export default class SocialPhotoStreamWebPart extends BaseClientSideWebPart<ISocialPhotoStreamWebPartProps> {
 
@@ -30,14 +32,22 @@ export default class SocialPhotoStreamWebPart extends BaseClientSideWebPart<ISoc
    * @function
    * Web part contructor.
    */
-  public constructor(context: IWebPartContext) {
-    super(context);
+  public constructor(context?: IWebPartContext) {
+    super();
 
     this.guid = this.getGuid();
 
     //Hack: to invoke correctly the onPropertyChange function outside this class
     //we need to bind this object on it first
-    this.onPropertyChange = this.onPropertyChange.bind(this);
+    this.onPropertyPaneFieldChanged = this.onPropertyPaneFieldChanged.bind(this);
+  }
+
+  /**
+   * @function
+   * Gets WP data version
+   */
+  protected get dataVersion(): Version {
+    return Version.parse('1.0');
   }
 
   /**
@@ -59,8 +69,8 @@ export default class SocialPhotoStreamWebPart extends BaseClientSideWebPart<ISoc
 }
 
 .socialstream li {
-  width: ${this.properties.width}px;
-  height: ${this.properties.height}px;
+  width: ${this.properties.dimension.width};
+  height: ${this.properties.dimension.height};
   list-style: none;
   float: left;
   margin-right: ${this.properties.spacing}px;
@@ -68,8 +78,8 @@ export default class SocialPhotoStreamWebPart extends BaseClientSideWebPart<ISoc
 }
 
 .socialstream li img {
-  width: ${this.properties.width}px;
-  height: ${this.properties.height}px;
+  width: ${this.properties.dimension.width};
+  height: ${this.properties.dimension.height};
 }
 </style>
     `;
@@ -78,15 +88,14 @@ export default class SocialPhotoStreamWebPart extends BaseClientSideWebPart<ISoc
 
     this.domElement.innerHTML = html;
 
-     ModuleLoader.loadScript('//www.jqueryscript.net/demo/jQuery-Plugin-To-Show-Photo-Streams-Form-Social-Networks/socialstream.jquery.js', 'jQuery').then((): void => {
       ($ as any)('#' + this.guid).socialstream({
         socialnetwork: this.properties.network,
         limit: this.properties.limit,
         username: this.properties.userName,
         overlay: this.properties.overlay,
+        accessToken: this.properties.accessKey,
         apikey: false
       });
-     });
   }
 
   /**
@@ -112,7 +121,7 @@ export default class SocialPhotoStreamWebPart extends BaseClientSideWebPart<ISoc
    * @function
    * PropertyPanel settings definition
    */
-  protected get propertyPaneSettings(): IPropertyPaneSettings {
+  protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
         {
@@ -132,13 +141,14 @@ export default class SocialPhotoStreamWebPart extends BaseClientSideWebPart<ISoc
                     {key: 'flickr', text: 'Flickr'},
                     {key: 'picasa', text: 'Picasa'},
                     {key: 'deviantart', text: 'Deviantart'},
-                    {key: 'dribbble', text: 'Dribbble'},
-                    {key: 'youtube', text: 'Youtube'},
-                    {key: 'newsfeed', text: 'Newsfeed'}
+                    {key: 'dribbble', text: 'Dribbble'}
                   ]
                 }),
                 PropertyPaneTextField('userName', {
                   label: strings.userName
+                }),
+                PropertyPaneTextField('accessKey', {
+                  label: strings.accessKey
                 }),
                 PropertyPaneSlider('limit', {
                   label: strings.limit,
@@ -149,17 +159,19 @@ export default class SocialPhotoStreamWebPart extends BaseClientSideWebPart<ISoc
                 PropertyPaneToggle('overlay', {
                   label: strings.overlay
                 }),
-                PropertyPaneSlider('width', {
-                  label: strings.width,
-                  min: 1,
-                  max: 400,
-                  step: 1
-                }),
-                PropertyPaneSlider('height', {
-                  label: strings.height,
-                  min: 1,
-                  max: 400,
-                  step: 1
+                PropertyFieldDimensionPicker('dimension', {
+                  label: strings.dimension,
+                  initialValue: this.properties.dimension,
+                  preserveRatio: true,
+                  preserveRatioEnabled: true,
+                  onPropertyChange: this.onPropertyPaneFieldChanged,
+                  render: this.render.bind(this),
+                  disableReactivePropertyChanges: this.disableReactivePropertyChanges,
+                  properties: this.properties,
+                  disabled: false,
+                  onGetErrorMessage: null,
+                  deferredValidationTime: 0,
+                  key: 'socialPhotoStreamDimensionFieldId'
                 }),
                 PropertyPaneSlider('spacing', {
                   label: strings.spacing,
